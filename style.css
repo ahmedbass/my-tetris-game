@@ -1,0 +1,152 @@
+/* --- Keep all previous styles from V2 --- */
+body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #1a1a1a;
+  color: #e0e0e0;
+  font-family: sans-serif;
+  margin: 0;
+  padding-top: 20px;
+  overflow: hidden;
+}
+h1 {
+  margin-bottom: 15px;
+  color: #f5f5f5;
+}
+.game-wrapper {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+.game-container {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 30px;
+}
+#canvas-container {
+  position: relative;
+}
+canvas#tetris-board {
+  border: 3px solid #666;
+  background-color: #282828;
+  display: block;
+  aspect-ratio: 0.5;
+  height: 80vh;
+}
+#pause-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.65);
+  color: #fff;
+  font-size: 2.5em;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  display: none;
+  cursor: pointer;
+  border-radius: 3px;
+}
+.info {
+  border: 1px solid #444;
+  padding: 15px;
+  background-color: #2c2c2c;
+  width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px; /* Reduced gap slightly */
+}
+.info h2 {
+  margin: 0;
+  font-size: 1.3em;
+  color: #fff;
+  text-align: center;
+}
+/* New Style for Level */
+.info h3 {
+  margin: 5px 0;
+  font-size: 1.1em;
+  color: #ddd;
+  text-align: center;
+  font-weight: normal;
+}
+.button-row {
+  display: flex;
+  justify-content: space-around;
+  gap: 5px; /* Reduced gap between buttons */
+}
+.button-row button {
+  flex-grow: 1;
+  padding: 8px 5px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.85em; /* Slightly smaller font */
+  color: white;
+  white-space: nowrap; /* Prevent wrapping */
+}
+#start-button {
+  background-color: #008f11;
+}
+#start-button:hover {
+  background-color: #00bf17;
+}
+#pause-button {
+  background-color: #e09f00;
+}
+#pause-button:hover {
+  background-color: #ffb700;
+}
+#end-button {
+  background-color: #c41e3a;
+}
+#end-button:hover {
+  background-color: #dc3545;
+}
+/* New Style for Mute Button */
+#mute-button {
+  background-color: #5a5a5a;
+}
+#mute-button:hover {
+  background-color: #707070;
+}
+#mute-button.muted {
+  background-color: #8a0000;
+} /* Indicate when muted */
+
+.button-row button:disabled {
+  background-color: #555 !important;
+  color: #999;
+  cursor: not-allowed;
+} /* Use !important to override specific button colors when disabled */
+.controls-section {
+  border-top: 1px solid #444;
+  padding-top: 10px;
+}
+.controls-section p {
+  margin: 0 0 8px 0;
+  font-weight: bold;
+  color: #ccc;
+  text-align: center;
+}
+.controls-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 15px;
+  font-size: 0.85em;
+  color: #bbb;
+}
+.controls-list li {
+  /* Item styling if needed */
+}
