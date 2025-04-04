@@ -110,22 +110,56 @@ canvas#tetris-board {
 #end-button:hover {
   background-color: #dc3545;
 }
-/* New Style for Mute Button */
-#mute-button {
-  background-color: #5a5a5a;
-}
-#mute-button:hover {
-  background-color: #707070;
-}
-#mute-button.muted {
-  background-color: #8a0000;
-} /* Indicate when muted */
-
 .button-row button:disabled {
   background-color: #555 !important;
   color: #999;
   cursor: not-allowed;
-} /* Use !important to override specific button colors when disabled */
+}
+
+.volume-control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* Pushes label and slider apart */
+  padding: 5px 0;
+  margin-top: 10px; /* Add space above volume control */
+  border-top: 1px solid #444; /* Separator */
+  padding-top: 10px;
+}
+.volume-control label {
+  margin-right: 10px; /* Space between label and slider */
+  font-size: 0.9em;
+  color: #ccc;
+}
+#volume-slider {
+  flex-grow: 1; /* Allow slider to take remaining space */
+  cursor: pointer;
+  /* Optional: Add more specific slider styling if desired */
+  height: 8px;
+  background: #555;
+  border-radius: 5px;
+  outline: none;
+  appearance: none; /* Override default look */
+  -webkit-appearance: none; /* Override default look for Safari/Chrome */
+}
+/* Styling the slider thumb (cross-browser) */
+#volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: #ddd;
+  border-radius: 50%;
+  cursor: pointer;
+}
+#volume-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: #ddd;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none; /* Remove default border in Firefox */
+}
+
 .controls-section {
   border-top: 1px solid #444;
   padding-top: 10px;

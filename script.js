@@ -6,9 +6,11 @@ const levelElement = document.getElementById("level");
 const startButton = document.getElementById("start-button");
 const pauseButton = document.getElementById("pause-button");
 const endButton = document.getElementById("end-button");
-const muteButton = document.getElementById("mute-button");
-const audioElement = document.getElementById("bg-music");
+// Removed muteButton
+const audioElement = document.getElementById("bg-music"); // Background Music
+const sfxLineClear = document.getElementById("sfx-line-clear"); // SFX
 const pauseOverlay = document.getElementById("pause-overlay");
+const volumeSlider = document.getElementById("volume-slider"); // <<< NEW Volume Slider
 
 const COLS = 10,
   ROWS = 20;
@@ -17,68 +19,69 @@ canvas.height = BLOCK_SIZE * ROWS;
 
 // --- Difficulty Settings ---
 const LINES_PER_LEVEL = 3;
-const INITIAL_GAME_SPEED = 800;
+const INITIAL_GAME_SPEED = 850;
 const MIN_GAME_SPEED = 120;
-const SPEED_DECREMENT = 75;
+const SPEED_DECREMENT = 90;
 
 // --- Visuals ---
-// --- ADDED new colors for new shapes ---
 const COLORS = [
-  null, // 0: Empty
-  "#E6194B", // 1: I - Red
-  "#3CB44B", // 2: J - Green
-  "#FFE119", // 3: L - Yellow
-  "#4363D8", // 4: T - Blue
-  "#F58231", // 5: S - Orange
-  "#911EB4", // 6: Z - Purple
-  "#46F0F0", // 7: O - Cyan
-  "#fabed4", // 8: Dot - Pink
-  "#f032e6", // 9: Domino - Magenta
-  "#a9a9a9", // 10: Short L - Dark Gray
-  "#008080", // 11: Short Line - Teal
+  null,
+  "#E6194B",
+  "#3CB44B",
+  "#FFE119",
+  "#4363D8",
+  "#F58231",
+  "#911EB4",
+  "#46F0F0",
+  "#fabed4",
+  "#f032e6",
+  "#a9a9a9",
+  "#008080",
 ];
-
-// --- ADDED new shape definitions ---
 const SHAPES = [
-  [], // 0: Empty
-  [[1, 1, 1, 1]], // 1: I
+  [],
+  [[1, 1, 1, 1]],
   [
     [1, 0, 0],
     [1, 1, 1],
-  ], // 2: J
+  ],
   [
     [0, 0, 1],
     [1, 1, 1],
-  ], // 3: L
+  ],
   [
     [0, 1, 0],
     [1, 1, 1],
-  ], // 4: T
+  ],
   [
     [0, 1, 1],
     [1, 1, 0],
-  ], // 5: S
+  ],
   [
     [1, 1, 0],
     [0, 1, 1],
-  ], // 6: Z
+  ],
   [
     [1, 1],
     [1, 1],
-  ], // 7: O
-  [[1]], // 8: Dot
-  [[1, 1]], // 9: Domino
+  ],
+  [[1]],
+  [[1, 1]],
   [
     [1, 1],
     [1, 0],
-  ], // 10: Short L
-  [[1, 1, 1]], // 11: Short Line
+  ],
+  [[1, 1, 1]],
 ];
-
 const EMPTY_COLOR = "#282828";
 const GRID_COLOR = "#333";
 const GHOST_ALPHA = 0.35;
 const GHOST_DARKEN_FACTOR = 0.6;
+const LINE_CLEAR_EFFECT_DURATION = 180;
+const FRAGMENT_COLOR = "#DDDDDD";
+const FRAGMENT_SIZE_DIVISOR = 3;
+const FRAGMENTS_PER_BLOCK = 3;
+const FRAGMENT_SPREAD = BLOCK_SIZE * 0.6;
 
 // --- Input Handling ---
 let isProcessingInput = false;
@@ -117,6 +120,20 @@ function getGhostColor(hexColor) {
   return `rgba(${r}, ${g}, ${b}, ${GHOST_ALPHA})`;
 }
 
+// --- UPDATED Play Sound Function (No mute check needed) ---
+function playSound(audioElement) {
+  if (audioElement) {
+    // Just check if element exists
+    audioElement.currentTime = 0; // Rewind to start
+    // Set SFX volume to max (optional, good practice)
+    audioElement.volume = 1.0;
+    let playPromise = audioElement.play();
+    if (playPromise !== undefined) {
+      playPromise.catch((error) => console.warn("SFX play failed:", error));
+    }
+  }
+}
+
 // --- Game State Variables ---
 let board;
 let currentPiece;
@@ -126,11 +143,12 @@ let isPaused;
 let gameLoopInterval;
 let gameSpeed;
 let gameRunning = false;
-let isMuted = false;
+// Removed isMuted
 let currentLevel;
 let totalLinesCleared;
+let isClearingLines = false;
 
-// --- Core Game Logic Functions (Unchanged, they adapt automatically) ---
+// --- Core Game Logic Functions (Unchanged) ---
 function createBoard() {
   return Array.from({ length: ROWS }, () => Array(COLS).fill(0));
 }
@@ -160,14 +178,9 @@ function isValidMove(nX, nY, shape) {
 }
 function rotatePiece() {
   if (!currentPiece) return;
-  const oS = currentPiece.shape; // Prevent rotation of O-block and Dot-block
-  if (
-    oS.length === oS[0].length &&
-    oS.every((row, i) => row.every((val, j) => val === oS[0][0]))
-  ) {
-    if (oS.length <= 2) return; // Don't rotate O (2x2) or Dot (1x1)
-  }
-  const r = oS.length,
+  if (currentPiece.colorIndex === 8 || currentPiece.colorIndex === 7) return;
+  const oS = currentPiece.shape,
+    r = oS.length,
     c = oS[0].length;
   const nS = Array.from({ length: c }, () => Array(r).fill(0));
   for (let y = 0; y < r; y++) {
@@ -203,33 +216,61 @@ function lockPiece() {
   });
 }
 function clearLines() {
-  let linesClearedThisTurn = 0;
+  // (Keep fragment effect logic as before)
+  if (isClearingLines) return;
+  const clearedLineIndices = [];
   for (let y = ROWS - 1; y >= 0; y--) {
-    if (board[y].every((cell) => cell)) {
-      linesClearedThisTurn++;
-      board.splice(y, 1);
-      board.unshift(Array(COLS).fill(0));
-      y++;
-    }
+    if (board[y].every((cell) => cell !== 0)) clearedLineIndices.push(y);
   }
-  if (linesClearedThisTurn > 0) {
-    let points = [0, 40, 100, 300, 1200][linesClearedThisTurn] || 0;
-    score += points * currentLevel;
-    scoreElement.textContent = score;
-    totalLinesCleared += linesClearedThisTurn;
-    const newLevel = Math.floor(totalLinesCleared / LINES_PER_LEVEL) + 1;
-    if (newLevel > currentLevel) {
-      currentLevel = newLevel;
-      levelElement.textContent = currentLevel;
-      gameSpeed = Math.max(
-        MIN_GAME_SPEED,
-        INITIAL_GAME_SPEED - (currentLevel - 1) * SPEED_DECREMENT
-      );
+  if (clearedLineIndices.length > 0) {
+    isClearingLines = true;
+    playSound(sfxLineClear); // << Play SFX
+    if (gameLoopInterval) {
+      clearInterval(gameLoopInterval);
+      gameLoopInterval = null;
+    }
+    context.fillStyle = FRAGMENT_COLOR;
+    const fragmentSize = BLOCK_SIZE / FRAGMENT_SIZE_DIVISOR;
+    clearedLineIndices.forEach((y) => {
+      for (let x = 0; x < COLS; x++) {
+        const cX = (x + 0.5) * BLOCK_SIZE,
+          cY = (y + 0.5) * BLOCK_SIZE;
+        for (let i = 0; i < FRAGMENTS_PER_BLOCK; i++) {
+          const fX =
+              cX + (Math.random() - 0.5) * FRAGMENT_SPREAD - fragmentSize / 2,
+            fY =
+              cY + (Math.random() - 0.5) * FRAGMENT_SPREAD - fragmentSize / 2;
+          context.fillRect(fX, fY, fragmentSize, fragmentSize);
+        }
+      }
+    });
+    setTimeout(() => {
+      clearedLineIndices.sort((a, b) => b - a);
+      clearedLineIndices.forEach((index) => {
+        board.splice(index, 1);
+      });
+      for (let i = 0; i < clearedLineIndices.length; i++)
+        board.unshift(Array(COLS).fill(0));
+      const linesClearedThisTurn = clearedLineIndices.length;
+      let points = [0, 40, 100, 300, 1200][linesClearedThisTurn] || 0;
+      score += points * currentLevel;
+      scoreElement.textContent = score;
+      totalLinesCleared += linesClearedThisTurn;
+      const newLevel = Math.floor(totalLinesCleared / LINES_PER_LEVEL) + 1;
+      if (newLevel > currentLevel) {
+        currentLevel = newLevel;
+        levelElement.textContent = currentLevel;
+        gameSpeed = Math.max(
+          MIN_GAME_SPEED,
+          INITIAL_GAME_SPEED - (currentLevel - 1) * SPEED_DECREMENT
+        );
+      }
+      isClearingLines = false;
       if (gameRunning && !isPaused && !gameOver) {
-        clearInterval(gameLoopInterval);
+        if (gameLoopInterval) clearInterval(gameLoopInterval);
         gameLoopInterval = setInterval(gameLoop, gameSpeed);
       }
-    }
+    }, LINE_CLEAR_EFFECT_DURATION);
   }
 }
 
@@ -297,21 +338,27 @@ function drawGhostPiece(ghostY) {
   });
 }
 
-// --- Game State Management Functions (Unchanged) ---
+// --- Game State Management Functions ---
+// Removed Mute Button logic from updateButtonStates
 function updateButtonStates() {
-  startButton.disabled = gameRunning || isPaused;
-  pauseButton.disabled = !gameRunning && !isPaused;
-  endButton.disabled = !gameRunning && !isPaused;
-  pauseButton.textContent = isPaused ? "Resume" : "Pause";
-  muteButton.textContent = isMuted ? "Unmute" : "Mute";
-  isMuted
-    ? muteButton.classList.add("muted")
-    : muteButton.classList.remove("muted");
+  startButton.disabled = gameRunning || isPaused || isClearingLines;
+  pauseButton.disabled = (!gameRunning && !isPaused) || isClearingLines;
+  endButton.disabled = (!gameRunning && !isPaused) || isClearingLines;
+  pauseButton.textContent = isPaused
+    ? "Resume"
+    : "Pause"; /* Mute button lines removed */
 }
+
+// --- UPDATED Music Control Functions (No mute check) ---
 function playMusic() {
-  if (audioElement && !isMuted && audioElement.paused) {
-    let p = audioElement.play();
-    if (p !== undefined) p.catch((e) => console.warn("Audio play failed: ", e));
+  if (audioElement && audioElement.paused) {
+    // Just check if paused
+    // Ensure volume is set before playing (in case it wasn't set initially)
+    audioElement.volume = parseFloat(volumeSlider.value);
+    let playPromise = audioElement.play();
+    if (playPromise !== undefined) {
+      playPromise.catch((error) => console.warn("Music play failed: ", error));
+    }
   }
 }
 function pauseMusic() {
@@ -323,14 +370,11 @@ function stopMusic() {
     audioElement.currentTime = 0;
   }
 }
-function toggleMute() {
-  isMuted = !isMuted;
-  if (isMuted) pauseMusic();
-  else if (gameRunning && !isPaused) playMusic();
-  updateButtonStates();
-}
+
+// Removed toggleMute function
+
 function pauseGame() {
-  if (!gameRunning || isPaused) return;
+  if (!gameRunning || isPaused || isClearingLines) return;
   isPaused = true;
   gameRunning = false;
   if (gameLoopInterval) clearInterval(gameLoopInterval);
@@ -340,7 +384,7 @@ function pauseGame() {
   updateButtonStates();
 }
 function resumeGame() {
-  if (!isPaused || gameOver) return;
+  if (!isPaused || gameOver || isClearingLines) return;
   isPaused = false;
   gameRunning = true;
   if (gameLoopInterval) clearInterval(gameLoopInterval);
@@ -350,10 +394,11 @@ function resumeGame() {
   updateButtonStates();
 }
 function endGame(showMsg = true) {
-  if (gameOver || (!gameRunning && !isPaused)) return;
+  if (gameOver || (!gameRunning && !isPaused && !isClearingLines)) return;
   gameOver = true;
   isPaused = false;
   gameRunning = false;
+  isClearingLines = false;
   if (gameLoopInterval) {
     clearInterval(gameLoopInterval);
     gameLoopInterval = null;
@@ -367,9 +412,9 @@ function endGame(showMsg = true) {
   updateButtonStates();
 }
 
-// --- Main Game Loop (Unchanged) ---
+// --- Main Game Loop (Unchanged from previous fragment version) ---
 function gameLoop() {
-  if (isPaused || gameOver) {
+  if (isPaused || gameOver || isClearingLines) {
     if (gameLoopInterval) clearInterval(gameLoopInterval);
     gameLoopInterval = null;
     return;
@@ -386,25 +431,32 @@ function gameLoop() {
   } else {
     lockPiece();
     clearLines();
-    if (gameOver) return;
-    currentPiece = getRandomPiece();
-    if (!isValidMove(currentPiece.x, currentPiece.y, currentPiece.shape)) {
-      endGame();
+    if (!isClearingLines) {
+      if (gameOver) return;
+      currentPiece = getRandomPiece();
+      if (!isValidMove(currentPiece.x, currentPiece.y, currentPiece.shape)) {
+        endGame();
+        return;
+      }
+    } else {
+      currentPiece = null;
       return;
     }
   }
-  if (!gameOver && !isPaused) {
+  if (!gameOver && !isPaused && !isClearingLines) {
     context.clearRect(0, 0, canvas.width, canvas.height);
     drawBoard();
-    const ghostY = calculateGhostY();
-    drawGhostPiece(ghostY);
-    drawPiece();
+    if (currentPiece) {
+      const ghostY = calculateGhostY();
+      drawGhostPiece(ghostY);
+      drawPiece();
+    }
   }
 }
 
 // --- Start Game Function (Unchanged) ---
 function startGame() {
-  if (gameRunning || isPaused) return;
+  if (gameRunning || isPaused || isClearingLines) return;
   board = createBoard();
   score = 0;
   totalLinesCleared = 0;
@@ -414,6 +466,7 @@ function startGame() {
   levelElement.textContent = currentLevel;
   gameOver = false;
   isPaused = false;
+  isClearingLines = false;
   if (gameLoopInterval) clearInterval(gameLoopInterval);
   gameLoopInterval = null;
   currentPiece = getRandomPiece();
@@ -428,9 +481,10 @@ function startGame() {
   updateButtonStates();
 }
 
-// --- Event Listeners (Added rotation check for Dot) ---
+// --- Event Listeners ---
 document.addEventListener("keydown", (event) => {
   // Keyboard Controls
+  if (isClearingLines) return;
   if (event.key.startsWith("Arrow")) {
     if (isProcessingInput) return;
     isProcessingInput = true;
@@ -475,18 +529,15 @@ document.addEventListener("keydown", (event) => {
       }
       break;
     case "ArrowUp":
-      // Prevent rotation attempt if it's the Dot piece (index 8) or O-piece (index 7)
       if (currentPiece.colorIndex !== 8 && currentPiece.colorIndex !== 7) {
         const oldX = currentPiece.x;
-        const oldShape = JSON.stringify(currentPiece.shape); // Need deep comparison
+        const oldShape = JSON.stringify(currentPiece.shape);
         rotatePiece();
-        // Check if position or shape actually changed
         if (
           currentPiece.x !== oldX ||
           JSON.stringify(currentPiece.shape) !== oldShape
-        ) {
+        )
           movedOrRotated = true;
-        }
       }
       break;
   }
@@ -503,13 +554,30 @@ pauseButton.addEventListener("click", () => {
   isPaused ? resumeGame() : pauseGame();
 });
 endButton.addEventListener("click", () => endGame(true));
-muteButton.addEventListener("click", toggleMute);
+// Removed MuteButton listener
+
+// --- NEW Volume Slider Listener ---
+volumeSlider.addEventListener("input", (event) => {
+  const newVolume = parseFloat(event.target.value);
+  if (audioElement) {
+    audioElement.volume = newVolume;
+  }
+  // Optional: If music is currently playing, ensure it continues if volume > 0
+  // if (newVolume > 0 && audioElement && audioElement.paused && gameRunning && !isPaused) {
+  //     playMusic();
+  // }
+});
+
 window.addEventListener("blur", () => {
-  if (gameRunning && !isPaused && !gameOver) pauseGame();
+  if (gameRunning && !isPaused && !gameOver && !isClearingLines) pauseGame();
 }); // Window Focus
 
-// --- Initial Setup (Unchanged) ---
+// --- Initial Setup ---
 board = createBoard();
 drawBoard();
 updateButtonStates();
 levelElement.textContent = "1";
+// --- Set Initial Music Volume ---
+if (audioElement) {
+  audioElement.volume = parseFloat(volumeSlider.value);
+}

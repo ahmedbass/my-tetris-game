@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enhanced Tetris V4</title> <!-- Updated Title -->
+    <title>My Tetris Game</title> <!-- Updated Title -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -21,8 +21,16 @@
                     <button id="start-button">Start</button>
                     <button id="pause-button" disabled>Pause</button>
                     <button id="end-button" disabled>End</button>
-                    <button id="mute-button">Mute</button>
+                    <!-- Mute button removed -->
                  </div>
+
+                 <!-- NEW Volume Control Section -->
+                 <div class="volume-control">
+                    <label for="volume-slider">Music:</label>
+                    <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="0.5"> <!-- Default 50% Vol -->
+                 </div>
+                 <!-- End Volume Control -->
+
                  <div class="controls-section">
                     <p>Controls:</p>
                     <ul class="controls-list">
@@ -30,16 +38,20 @@
                         <li>→: Right</li>
                         <li>↓: Down</li>
                         <li>↑: Rotate</li>
-                        <li>Space: Start/Pause</li> <!-- Added info for Space -->
+                        <li>Space: Start/Pause</li>
                     </ul>
                  </div>
             </div>
         </div>
     </div>
 
-    <!-- ## IMPORTANT: Replace "YOUR_MUSIC_FILE.mp3" ## -->
     <audio id="bg-music" loop>
         <source src="Tetris.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+
+    <audio id="sfx-line-clear">
+        <source src="brick.mp3" type="audio/mp3">
         Your browser does not support the audio element.
     </audio>
 
