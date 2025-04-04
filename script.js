@@ -17,8 +17,8 @@ canvas.height = BLOCK_SIZE * ROWS;
 
 // --- Difficulty Settings ---
 const LINES_PER_LEVEL = 3;
-const INITIAL_GAME_SPEED = 1000;
-const MIN_GAME_SPEED = 150;
+const INITIAL_GAME_SPEED = 800;
+const MIN_GAME_SPEED = 120;
 const SPEED_DECREMENT = 75;
 
 // --- Visuals ---
